@@ -1,0 +1,663 @@
+<html>
+  <head>
+    <link rel="stylesheet" href="leaflet.css" />
+    <link rel="stylesheet" href="bootstrap.min.css">
+    <link rel="stylesheet" href="stylesheet.css" />
+
+    <script src="leaflet.js"></script>
+    <script src="bootstrap.bundle.min.js"></script>
+    <script src="jquery-3.7.1.min.js"></script>
+    <script type="application/javascript">
+      //const fs = require('fs');
+
+      const categories = {star: [], starRng: [], breakableWall: [], keycard: [], easterEgg: []};
+      const levelMarkerData = 
+      {
+        e1m1: {star: [], starRng: [], breakableWall: [], keycard: [], easterEgg: [], secret: []}, 
+        e1m2: {star: [], starRng: [], breakableWall: [], keycard: [], easterEgg: [], secret: []}, 
+        e2m1: {star: [], starRng: [], breakableWall: [], keycard: [], easterEgg: [], secret: []}, 
+        e2m2: {star: [], starRng: [], breakableWall: [], keycard: [], easterEgg: [], secret: []}, 
+        e3m0: {star: [], starRng: [], breakableWall: [], keycard: [], easterEgg: [], secret: []}, 
+        e3m1: {star: [], starRng: [], breakableWall: [], keycard: [], easterEgg: [], secret: []}, 
+        e3m2: {star: [], starRng: [], breakableWall: [], keycard: [], easterEgg: [], secret: []}, 
+        e4m1: {star: [], starRng: [], breakableWall: [], keycard: [], easterEgg: [], secret: []}, 
+        e4m2: {star: [], starRng: [], breakableWall: [], keycard: [], easterEgg: [], secret: []}
+      };
+
+      var folderRelative = "icons/";
+
+      // Defined all icons
+      var starIcon = new L.icon({iconUrl: folderRelative + 'starIcon.png', className: 'customicon'});
+      var breakableIcon = new L.icon({iconUrl: folderRelative + 'breakable_wall_icon.png', className: 'customicon'});
+      var redKeycardIcon = new L.icon({iconUrl: folderRelative + 'red_keycard_icon.png', className: 'customicon'});
+      var greenKeycardIcon = new L.icon({iconUrl: folderRelative + 'green_keycard_icon.png', className: 'customicon'});
+      var blueKeycardIcon = new L.icon({iconUrl: folderRelative + 'blue_keycard_icon.png', className: 'customicon'});
+      var starRng = new L.icon({iconUrl: folderRelative + 'starIcon_rng.png', className: 'customicon'});
+      var easterEgg = new L.icon({iconUrl: folderRelative + 'easteregg.png', className: 'customicon'});
+      var secret = new L.icon({iconUrl: folderRelative + 'secret.png', className: 'customicon'});
+
+      var selectedMarkerIcon;
+
+      var polylines = [
+                        // E1M1
+                        [[-196.54746545466747,85.52734375],
+                         [-196.16436217799708,85.00390625],
+                         [-194.9329587886993,84.9140625],
+                         [-194.1980259722295,82.8046875],
+                         [-193.48093315369707,82.625]],
+                        // E1M2 inside wall star
+                        [[-142.48368625119457,89.3359375],
+                         [-141.52224665518196,89.3125],
+                         [-141.5300554221261,88.7890625],
+                         [-137.84792503002163,88.80859375]],
+                        // E1M2 Easter egg
+                        [[-157.28206788217628,78.828125],
+                        [-157.2976979136345,79.2890625],
+                        [-158.78255090216587,79.3203125],
+                        [-158.72784579206208,80.296875],
+                        [-157.62592857425722,81.4765625],
+                        [-157.08669248894847,81.4921875],
+                        [-156.96165223728266,82.2578125]],
+                        // E2M2 -> E3M0 -> E3M1
+                        [[-56.99603479092944,83.65625],
+                        [-70.5516786126959,54.65625],
+                        [-44.77377714938254,37.3515625]]
+                      ];
+
+      var testPolylines = [];
+      
+      let i = 0;
+      let overlay;
+      var markedMarkers = [];
+
+      var savedMarkedMarkers;
+
+      var map;
+
+      // e1m1
+      // structure is: position array, description, icon, level/map name
+      addNewMarker([-221.12227465933498, 96.421875], "star", "Star", starIcon, "e1m1");
+      addNewMarker([-186.48903192854712, 110.05078125], "star", "Star", starIcon, "e1m1");
+      addNewMarker([-186.2974802902119, 108.98828125], "star", "Star", starIcon, "e1m1");
+      addNewMarker([-206.43467377763298, 93.0546875],  "star", "From the backside shoot the wall to destroy it, then destroy the power core to open the door <img src='secret_star.png' style='width: 150px; height: 200px;'>", starIcon, "e1m1");
+
+      addNewMarker([-193.15594535819628, 92.640625], "starRng", "RNG Star: Only 2 can spawn in this level, if you already found 2 you are done.", starRng, "e1m1");
+      addNewMarker([-201.05404775221217, 107.80859375], "starRng", "RNG Star: Only 2 can spawn in this level, if you already found 2 you are done.", starRng, "e1m1");
+      addNewMarker([-186.5308996619257, 86.3203125], "starRng", "RNG Star: Only 2 can spawn in this level, if you already found 2 you are done.", starRng, "e1m1");
+      addNewMarker([-179.16790782163926, 103.85546875], "starRng", "RNG Star: Only 2 can spawn in this level, if you already found 2 you are done.", starRng, "e1m1");
+      addNewMarker([-178.3358882886317, 116.21484375], "starRng", "RNG Star: Only 2 can spawn in this level, if you already found 2 you are done.", starRng, "e1m1");
+      addNewMarker([-170.63281601509775, 104.76171875], "starRng", "RNG Star: Only 2 can spawn in this level, if you already found 2 you are done.", starRng, "e1m1");
+      addNewMarker([-173.21869961693247, 90.53515625], "starRng", "RNG Star: Only 2 can spawn in this level, if you already found 2 you are done.", starRng, "e1m1");
+      addNewMarker([-166.64861794168374, 96.6328125], "starRng", "RNG Star: Only 2 can spawn in this level, if you already found 2 you are done.", starRng, "e1m1");
+      addNewMarker([-174.6911203553842, 104.54296875], "starRng", "RNG Star: Only 2 can spawn in this level, if you already found 2 you are done.", starRng, "e1m1");
+      addNewMarker([-170.92571036219567, 113.8984375], "starRng", "RNG Star: Only 2 can spawn in this level, if you already found 2 you are done.", starRng, "e1m1");
+
+      addNewMarker([-220.48933754076194, 107.5546875], "breakableWall", "Breakable wall", breakableIcon, "e1m1");
+      addNewMarker([-216.11051436981063, 106.22265625], "breakableWall", "Breakable wall", breakableIcon, "e1m1");
+     
+      addNewMarker([-208.21019474336273, 95.3515625], "keycard", "Red keycard", redKeycardIcon, "e1m1");
+
+      // E1M2
+      addNewMarker([-137.79193096047206, 88.8046875], "star", "Star", starIcon, "e1m2");
+      addNewMarker([-153.75206958651887, 107.875], "star", "Star", starIcon, "e1m2");
+
+      addNewMarker([-118.18841685586848, 76.26171875], "starRng", "RNG Star: Only 4 can spawn in this level, if you already found 4 you are done.", starRng, "e1m2");
+      addNewMarker([-124.56616889544279, 80.91015625], "starRng", "RNG Star: Only 4 can spawn in this level, if you already found 4 you are done.", starRng, "e1m2");
+      addNewMarker([-134.53009231654974, 77.6796875], "starRng", "RNG Star: Only 4 can spawn in this level, if you already found 4 you are done.", starRng, "e1m2");
+      addNewMarker([-140.15043758885062, 79.98046875], "starRng", "RNG Star: Only 4 can spawn in this level, if you already found 4 you are done.", starRng, "e1m2");
+      addNewMarker([-128.3547217026939, 83.1953125], "starRng", "RNG Star: Only 4 can spawn in this level, if you already found 4 you are done.", starRng, "e1m2");
+      addNewMarker([-132.71451524108468, 89.45703125], "starRng", "RNG Star: Only 4 can spawn in this level, if you already found 4 you are done.", starRng, "e1m2");
+      addNewMarker([-149.09709069203782, 101.234375], "starRng", "RNG Star: Only 4 can spawn in this level, if you already found 4 you are done.", starRng, "e1m2");
+      addNewMarker([-143.76925313733872, 106.046875], "starRng", "RNG Star: Only 4 can spawn in this level, if you already found 4 you are done.", starRng, "e1m2");
+      addNewMarker([-134.32882868102885, 108.10546875], "starRng", "RNG Star: Only 4 can spawn in this level, if you already found 4 you are done.", starRng, "e1m2");
+      addNewMarker([-132.37205874493876, 94.8203125], "starRng", "RNG Star: Only 4 can spawn in this level, if you already found 4 you are done.", starRng, "e1m2");
+
+      addNewMarker([-142.5786457612919, 89.359375], "breakableWall", "Wall", breakableIcon, "e1m2");
+      addNewMarker([-150.51877888712357, 109.8046875], "breakableWall", "Wall", breakableIcon, "e1m2");
+      addNewMarker([-133.23369931689007, 89.44921875], "breakableWall", "Wall", breakableIcon, "e1m2");
+
+      addNewMarker([-157.30420966885043, 78.65234375], "easterEgg", "Easter egg", easterEgg, "e1m2");
+
+      addNewMarker([-134.7615264976234, 107.18359375], "keycard", "Red keycard", blueKeycardIcon, "e1m2");
+
+      addNewMarker([-137.56744903235338, 80.15625], "secret", "Secret", secret, "e1m2");
+
+      // E2M1
+      addNewMarker([-77.85098647217986, 93.33113126707943], "star", "Star", starIcon, "e2m1");
+      addNewMarker([-62.51170268055825, 98.03816251707943], "star", "Star", starIcon, "e2m1");
+
+      //rng
+      addNewMarker([-111.17263080491307, 81.20123449869787], "starRng", "RNG Star: Only 4 can spawn in this level, if you already found 4 you are done.", starRng, "e2m1");
+      addNewMarker([-104.36024839617252, 86.57623449869787], "starRng", "RNG Star: Only 4 can spawn in this level, if you already found 4 you are done.", starRng, "e2m1");
+      addNewMarker([-79.30884199821442, 106.92578125], "starRng", "RNG Star: Only 4 can spawn in this level, if you already found 4 you are done.", starRng, "e2m1");
+      addNewMarker([-81.83952644025224, 99.3828125], "starRng", "RNG Star: Only 4 can spawn in this level, if you already found 4 you are done.", starRng, "e2m1");
+      addNewMarker([-69.44599751574957, 106.08984375], "starRng", "RNG Star: Only 4 can spawn in this level, if you already found 4 you are done.", starRng, "e2m1");
+      addNewMarker([-73.17501784007746, 96.40234375], "starRng", "RNG Star: Only 4 can spawn in this level, if you already found 4 you are done.", starRng, "e2m1");
+      addNewMarker([-80.01756579609184, 92.37890625], "starRng", "RNG Star: Only 4 can spawn in this level, if you already found 4 you are done.", starRng, "e2m1");
+      addNewMarker([-77.77299886593693, 89.9765625], "starRng", "RNG Star: Only 4 can spawn in this level, if you already found 4 you are done.", starRng, "e2m1");
+      addNewMarker([-80.30054493026275, 84.75300626707943], "starRng", "RNG Star: Only 4 can spawn in this level, if you already found 4 you are done.", starRng, "e2m1");
+      addNewMarker([-91.62394987408615, 90.85456876707943], "starRng", "RNG Star: Only 4 can spawn in this level, if you already found 4 you are done.", starRng, "e2m1");
+
+      // breakable
+      addNewMarker([-69.12583807103967, 106.078125], "breakableWall", "Wall", breakableIcon, "e2m1");
+      addNewMarker([-69.11412492062344, 108.578125], "breakableWall", "Wall", breakableIcon, "e2m1");
+      addNewMarker([-72.87047592925585, 96.45703125], "breakableWall", "Wall", breakableIcon, "e2m1");
+      addNewMarker([-71.8911005567129, 99.45913753415886], "breakableWall", "Wall", breakableIcon, "e2m1");
+      addNewMarker([-69.51906721385554, 99.70613126707943], "breakableWall", "Wall", breakableIcon, "e2m1");
+      addNewMarker([-82.98375157967206, 97.0859375], "breakableWall", "Wall", breakableIcon, "e2m1");
+
+      // E2M2
+      // Star
+      addNewMarker([-61.74590217717343, 92.328125], "star", "Star", starIcon, "e2m2");
+      addNewMarker([-53.26563437359396, 103.2421875], "star", "Star", starIcon, "e2m2");
+      addNewMarker([-40.230758745563165, 87.5703125], "star", "Star", starIcon, "e2m2");
+      addNewMarker([-45.569747155114236, 100.06640625], "star", "Star", starIcon, "e2m2");
+
+      // RNG Star
+      addNewMarker([-64.81213735908364, 82.7578125], "starRng", "RNG Star: Only 2 can spawn in this level, if you already found 2 you are done.", starRng, "e2m2");
+      addNewMarker([-40.74638901820977, 97.96875], "starRng", "RNG Star: Only 2 can spawn in this level, if you already found 2 you are done.", starRng, "e2m2");
+      addNewMarker([-51.76904499481328, 87.38671875], "starRng", "RNG Star: Only 2 can spawn in this level, if you already found 2 you are done.", starRng, "e2m2");
+      addNewMarker([-53.784545208843674, 79.703125], "starRng", "RNG Star: Only 2 can spawn in this level, if you already found 2 you are done.", starRng, "e2m2");
+
+      // Breakable
+      addNewMarker([-61.499845335699646, 92.3359375], "breakableWall", "Wall", breakableIcon, "e2m2");
+      addNewMarker([-59.85538204425586, 95.82421875], "breakableWall", "Wall", breakableIcon, "e2m2");
+      addNewMarker([-59.85538204425586, 95.453125], "breakableWall", "Wall", breakableIcon, "e2m2");
+      addNewMarker([-53.078162494375846, 102.8203125], "breakableWall", "Wall", breakableIcon, "e2m2");
+      addNewMarker([-54.84349456956457, 90.9453125], "breakableWall", "Wall", breakableIcon, "e2m2");
+      addNewMarker([-52.49199768472229, 86.0703125], "breakableWall", "Wall", breakableIcon, "e2m2");
+      addNewMarker([-50.27342343960906, 104.56640625], "breakableWall", "Wall", breakableIcon, "e2m2");
+      addNewMarker([-50.874816043218516, 96.1953125], "breakableWall", "Wall", breakableIcon, "e2m2");
+      addNewMarker([-39.86745992007449, 92.45703125], "breakableWall", "Wall", breakableIcon, "e2m2");
+      addNewMarker([-39.48079916918712, 91.7578125], "breakableWall", "Wall", breakableIcon, "e2m2");
+      addNewMarker([-43.73030646965455, 87.96484375], "breakableWall", "Wall", breakableIcon, "e2m2");
+
+      // E3M0
+
+      // E3M1
+      // Star
+      addNewMarker([-51.23827011885717, 46.8359375], "star", "Star", starIcon, "e3m1");
+      addNewMarker([-58.460644575188724, 43.62109375], "star", "Star", starIcon, "e3m1");
+      addNewMarker([-63.061772374768786, 44.15625], "star", "Star", starIcon, "e3m1");
+      addNewMarker([-42.31224164031645, 50.765625], "star", "Star", starIcon, "e3m1");
+
+      // RNG Star
+      addNewMarker([-48.784726822226666, 59.22265625], "starRng", "RNG Star: Only 2 can spawn in this level, if you already found 2 you are done.", starRng, "e3m1");
+      addNewMarker([-44.26167623823506, 59.406239161966965], "starRng", "RNG Star: Only 2 can spawn in this level, if you already found 2 you are done.", starRng, "e3m1");
+      addNewMarker([-45.503677438055085, 62.957020411966965], "starRng", "RNG Star: Only 2 can spawn in this level, if you already found 2 you are done.", starRng, "e3m1");
+      addNewMarker([-37.941420896240565, 53.06640625], "starRng", "RNG Star: Only 2 can spawn in this level, if you already found 2 you are done.", starRng, "e3m1");
+      addNewMarker([-36.18364296136829, 59.3046875], "starRng", "RNG Star: Only 2 can spawn in this level, if you already found 2 you are done.", starRng, "e3m1");
+      addNewMarker([-33.956791637504374, 54.44140625  ], "starRng", "RNG Star: Only 2 can spawn in this level, if you already found 2 you are done.", starRng, "e3m1");
+
+      // Breakable
+      addNewMarker([-57.363035193158524, 45.40625], "breakableWall", "Wall", breakableIcon, "e3m1");
+      addNewMarker([-52.569880728828174, 51.2734375], "breakableWall", "Wall", breakableIcon, "e3m1");
+      addNewMarker([-57.33558657607609, 54.765625], "breakableWall", "Wall", breakableIcon, "e3m1");
+
+      // E3M2
+      // Star
+      addNewMarker([-39.60909262048193, 22.140625], "star", "Star", starIcon, "e3m2");
+      addNewMarker([-25.29285216592511, 13.8046875], "star", "Star", starIcon, "e3m2");
+      addNewMarker([-24.171916595323204, 29.69140625], "star", "Star", starIcon, "e3m2");
+      addNewMarker([-11.585796896090587, 33.2109375], "star", "Star", starIcon, "e3m2");
+
+      // RNG Star
+      addNewMarker([-12.395024535382193, 12.91015625], "starRng", "RNG Star: Only 2 can spawn in this level, if you already found 2 you are done.", starRng, "e3m2");
+      addNewMarker([-14.613878816615008, 32.0625], "starRng", "RNG Star: Only 2 can spawn in this level, if you already found 2 you are done.", starRng, "e3m2");
+      addNewMarker([-13.262336821351795, 22.09375], "starRng", "RNG Star: Only 2 can spawn in this level, if you already found 2 you are done.", starRng, "e3m2");
+      addNewMarker([-31.600568899040145, 39.9140625], "starRng", "RNG Star: Only 2 can spawn in this level, if you already found 2 you are done.", starRng, "e3m2");
+
+      // Breakable
+      addNewMarker([-39.27711116769984, 21.46484375], "breakableWall", "Wall", breakableIcon, "e3m2");
+      addNewMarker([-15.003744555504174, 31.94921875], "breakableWall", "Wall", breakableIcon, "e3m2");
+
+      // Keycard
+      addNewMarker([-24.445113896977954, 11.32421875], "keycard", "Red keycard", redKeycardIcon, "e3m2");
+
+      // E4M1
+      // Star
+      addNewMarker([-107.88278437921812, 17.0078125], "star", "Star", starIcon, "e4m1");
+      addNewMarker([-105.6640367226166, 19.2578125], "star", "Star", starIcon, "e4m1");
+      addNewMarker([-124.17167639697796, 27.3828125], "star", "Star", starIcon, "e4m1");
+      addNewMarker([-128.64801451657252, 15.0390625], "star", "Star", starIcon, "e4m1");
+      addNewMarker([-129.4997375393691, 37.74609375], "star", "Star", starIcon, "e4m1");
+      addNewMarker([-136.67527624762536, 36.89453125], "star", "Star", starIcon, "e4m1");
+      
+      // Breakable
+      addNewMarker([-108.72313723254013, 16.3828125], "breakableWall", "Wall", breakableIcon, "e4m1");
+      addNewMarker([-116.64827463380493, 25.6328125], "breakableWall", "Wall", breakableIcon, "e4m1");
+      addNewMarker([-116.66389729040644, 26.03125], "breakableWall", "Wall", breakableIcon, "e4m1");
+      addNewMarker([-118.74171061840724, 25.640625], "breakableWall", "Wall", breakableIcon, "e4m1");
+      addNewMarker([-118.73389929010648, 26.0390625], "breakableWall", "Wall", breakableIcon, "e4m1");
+      addNewMarker([-114.49614003212018, 27.625], "breakableWall", "Wall", breakableIcon, "e4m1");
+      addNewMarker([-130.63235963824175, 9.75], "breakableWall", "Wall", breakableIcon, "e4m1");
+      addNewMarker([-132.72252267628605, 41.140625], "breakableWall", "Wall", breakableIcon, "e4m1");
+      addNewMarker([-142.86702580550417, 27.5078125], "breakableWall", "Wall", breakableIcon, "e4m1");
+      addNewMarker([-142.89045979040645, 28.0078125], "breakableWall", "Wall", breakableIcon, "e4m1");
+      addNewMarker([-142.87483713380493, 28.390625], "breakableWall", "Wall", breakableIcon, "e4m1");
+      addNewMarker([-142.8787427979553, 29.5234375], "breakableWall", "Wall", breakableIcon, "e4m1");
+      addNewMarker([-110.60525198563965, 29.37890625], "breakableWall", "Wall", breakableIcon, "e4m1");
+
+      // E4M2
+      addNewMarker([-158.8980766166325, 8.921875], "star", "Star", starIcon, "e4m2");
+      addNewMarker([-158.7029404573689, 29.29296875], "star", "Star", starIcon, "e4m2");
+      addNewMarker([-163.77714749037645, 29.1640625], "star", "Star", starIcon, "e4m2");
+      addNewMarker([-164.26933850547417, 37.7265625], "star", "Star", starIcon, "e4m2");
+      addNewMarker([-165.65631092836074, 37.109375], "star", "Star", starIcon, "e4m2");
+      addNewMarker([-166.40227520559415, 26.84375], "star", "Star", starIcon, "e4m2");
+
+      // Breakable
+      addNewMarker([-160.0388082412638, 27.71484375], "breakableWall", "Wall", breakableIcon, "e4m2");
+      addNewMarker([-168.85863878576785, 26.845584730308012], "breakableWall", "Wall", breakableIcon, "e4m2");
+      addNewMarker([-169.56556399698616, 27.970584730308012], "breakableWall", "Wall", breakableIcon, "e4m2");
+      addNewMarker([-173.29599583845993, 36.21667848030801], "breakableWall", "Wall", breakableIcon, "e4m2");
+
+      // Keycard
+      addNewMarker([-161.29653403551967, 37.6015625], "keycard", "Red keycard", blueKeycardIcon, "e4m2");
+      addNewMarker([-164.11317638291757, 22.22265625], "keycard", "Red keycard", redKeycardIcon, "e4m2");
+
+      function delay(time) {
+        return new Promise(resolve => setTimeout(resolve, time));
+      }
+
+      // Delay loading so everything can be initialized
+      delay(1).then(() => {
+        savedMarkedMarkers = localStorage.getItem("markedMarkers");
+        if(savedMarkedMarkers != null) {
+          console.log(JSON.parse(savedMarkedMarkers));
+        }
+
+        console.log('ran after 1 second1 passed');
+
+        var bounds = [[-0.13824389122438063, 0.140625], [-234.04822155806622, 123.359375]];
+
+        // map defined
+        map = L.map('map', {
+           crs: L.CRS.Simple,
+            // center: [bounds[1][0]/2, bounds[1][1]/2 ],
+            zoom: 3,
+            maxBoundsViscosity: 1.0,
+            // tileSize: 256
+            // bounds: [[bounds[0][0]*1.2,bounds[0][1]*1.2],[bounds[1][0] + 20,bounds[1][1] + 20]],
+        }).setView([bounds[1][0], bounds[1][1] ], 2);
+
+        var tileLayer = L.tileLayer("{z}\\{x}\\{y}.png", {
+          noWrap: true,
+          minZoom: 2,
+          maxZoom: 8,
+          center: [0,0],
+          crs: L.CRS.Simple,
+          maxNativeZoom: 7,
+          // Set max bounds so it doesn't try to render tiles outside the border
+          bounds: bounds
+        }).addTo(map);
+
+        // Set max bounds for dragging
+        map.setMaxBounds([[bounds[0][0] + 100,bounds[0][1] - 50],[bounds[1][0] - 50, bounds[1][1] + 100]]);
+
+        // For each entry give the key (map name) and value of the levelMarkerData
+        for(const [key, value] of Object.entries(levelMarkerData)) {
+          // For each dict value in levelMarkerData return the arrays
+          for(const [key1, markers] of Object.entries(value)) {
+            // For each array in category inside add the marker on the map
+            for(i = 0; i < markers.length; i++) {
+
+              let mark = new L.marker(markers[i].position, {icon: markers[i].icon});
+              mark.addTo(map).bindPopup(markers[i].description);
+              map.addLayer(mark);
+
+              mark.on('contextmenu', function(e) {
+                // console.log(e.target instanceof L.marker)
+                if(mark.options.opacity == 1) {
+                  mark.setOpacity(0.5);
+                  
+                  markedMarkers.push(e.target._leaflet_id);
+                }else{
+                  mark.setOpacity(1);
+
+                  let index = markedMarkers.indexOf(e.target._leaflet_id);
+                  markedMarkers.splice(index, index + 1);
+                }
+              });
+            }
+          }
+        }
+
+        map.on('mousemove', function(ev){
+          var latlng = map.mouseEventToLatLng(ev.originalEvent);
+          // console.log(L.latLng([latlng.lat, latlng.lng]));
+        });
+
+        map.on('contextmenu', function(ev) {
+          var latlng = map.mouseEventToLatLng(ev.originalEvent);
+          var pos = L.latLng([latlng.lat, latlng.lng]);
+
+
+          testPolylines.push(pos);
+          let poly = L.polyline(testPolylines, {color: 'red'});
+
+          poly.addTo(map);
+
+          console.log("---------------");
+          console.log(testPolylines);
+
+        });
+
+        // Draw all pre-configured polylines
+        let poly = L.polyline(polylines, {color: 'red'});
+        poly.addTo(map);
+
+        map.on('click', function(ev){
+
+          if(selectedMarkerIcon != undefined) {
+            let latlng = map.mouseEventToLatLng(ev.originalEvent);
+
+            console.log(latlng.lat + ', ' + latlng.lng);
+
+            // add marker to list
+            let pos = L.latLng([latlng.lat, latlng.lng]);
+            mark = new L.marker(L.latLng(pos), {icon: selectedMarkerIcon});
+            mark.addTo(map);
+            map.addLayer(mark);
+
+            // Putting markers on the map for testing/easier placing
+            mark.on('click', function(e) { 
+              console.log(e);
+              console.log("pin removed");
+              e.target.remove();
+            });
+            //---------------
+
+
+            mark.on('contextmenu', function(ev) { 
+
+               if(mark.options.opacity == 1)
+                 mark.setOpacity(0.5);
+               else
+                 mark.setOpacity(1);
+
+
+              console.log(ev);
+            });
+          }
+        });
+
+        // Debugging: draw the boundingbox to see if the tiles aren't rendered outside
+        // var boundingBox = L.rectangle(bounds, {color: "#ff7800", weight: 2});
+        // map.addLayer(boundingBox);
+        
+        populateMarkerLegend();
+
+        const toastTrigger = document.getElementById('saveMarkers')
+        const toastLiveExample = document.getElementById('toast')
+
+        if (toastTrigger) {
+          const toastBootstrap = bootstrap.Toast.getOrCreateInstance(toastLiveExample)
+          toastTrigger.addEventListener('click', () => {
+            toastBootstrap.show()
+          });
+        }
+
+      });
+
+    function addNewMarker(position, category, description, icon, map) {
+      let marker = {position: position, description: description, icon: icon};
+
+      if(map != null || map != "")
+        levelMarkerData[map][category].push(marker);
+    }
+
+    function populateMarkerLegend() {
+
+      let div = document.createElement('div');
+      div.setAttribute("class", "row");
+
+      let previousKey;
+
+      // Disgusting, but works for now
+      for(const [key, value] of Object.entries(levelMarkerData)) {
+        for(const [key1, markers] of Object.entries(value)) {
+          let markerLegend = document.getElementById(key);
+
+          if(previousKey != key) {
+            div = document.createElement('div');
+            div.setAttribute("class", "row");
+            div.setAttribute("style", "padding-top:15px");  
+          }
+
+          previousKey = key;
+
+          for(i = 0; i < markers.length; i++) {
+            let value = markers[i];
+            console.log(value);
+
+            let a = document.createElement('a');
+            a.innerText = key1;
+            a.addEventListener('click', () => {
+              setMapView(value.position);
+            });
+
+            a.addEventListener('contextmenu', (e) => {
+              e.preventDefault();
+              a.setAttribute("class", "checked col ahover customahref")
+            });
+
+            a.setAttribute("class", "col ahover customahref");
+
+            div.appendChild(a);
+
+            // Why... Only want 2 columns in the width
+            if(i % 2 == 1) {
+              markerLegend.appendChild(div);
+
+              div = document.createElement('div');
+              div.setAttribute("class", "row");
+            }else{
+              markerLegend.appendChild(div);
+            }
+          }
+        }
+      }
+
+      for(const [key, value] of Object.entries(map._layers)) {
+        if(savedMarkedMarkers.includes(value._leaflet_id)) {
+          markedMarkers.push(value._leaflet_id);
+          value.setOpacity(0.5);
+        }
+      }
+    }
+
+    function setMapView(position) {
+      map.setView(position, 7);
+    }
+
+    function selectedMarker(imageFile) {
+      selectedMarkerIcon = imageFile;
+      // console.log("selecter icon: " + imageFile);
+    }
+
+    function saveMarkers() {
+      localStorage.setItem("markedMarkers", JSON.stringify(markedMarkers));
+      console.log(JSON.stringify(markedMarkers));
+    }
+    </script>
+  </head>
+  <body>
+    <div aria-live="polite" aria-atomic="true" class="bg-body-secondary position-relative bd-example-toasts rounded-3">
+    <div class="toast-container p-3 top-0 start-50 translate-middle-x" id="toastPlacement">
+      <div id="toast" class="toast text-bg-success">
+        <div class="toast-body">
+          Markers are saved!
+        </div>
+      </div>
+    </div>
+  </div>
+
+    <div style="display: flex; height: 95%;">
+      <div class="container" style="background: lightblue; width: 300px; overflow-y: scroll;">
+        <div class="row">
+          <div>marker_legend</div>
+        </div>
+
+          <div class="accordion accordion-flush" id="accordionExample">
+            <div class="accordion-item">
+              <h2 class="accordion-header">
+                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
+                  E1M1
+                </button>
+              </h2>
+              <div id="collapseOne" class="accordion-collapse collapse" data-bs-parent="#accordionExample">
+                <div class="accordion-body">
+                  <div id="e1m1">
+
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="accordion-item">
+              <h2 class="accordion-header">
+                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo" aria-expanded="true" aria-controls="collapseTwo">
+                  E1M2
+                </button>
+              </h2>
+              <div id="collapseTwo" class="accordion-collapse collapse" data-bs-parent="#accordionExample">
+                <div class="accordion-body">
+                  <div id="e1m2">
+
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="accordion-item">
+              <h2 class="accordion-header">
+                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree" aria-expanded="true" aria-controls="collapseThree">
+                  E2M1
+                </button>
+              </h2>
+              <div id="collapseThree" class="accordion-collapse collapse" data-bs-parent="#accordionExample">
+                <div class="accordion-body">
+                  <div id="e2m1">
+
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="accordion-item">
+              <h2 class="accordion-header">
+                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFour" aria-expanded="true" aria-controls="collapseFour">
+                  E2M2
+                </button>
+              </h2>
+              <div id="collapseFour" class="accordion-collapse collapse" data-bs-parent="#accordionExample">
+                <div class="accordion-body">
+                  <div id="e2m2">
+
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="accordion-item">
+              <h2 class="accordion-header">
+                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFive" aria-expanded="true" aria-controls="collapseFive">
+                  E3M0
+                </button>
+              </h2>
+              <div id="collapseFive" class="accordion-collapse collapse" data-bs-parent="#accordionExample">
+                <div class="accordion-body">
+                  <div id="e3m0">
+
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="accordion-item">
+              <h2 class="accordion-header">
+                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSix" aria-expanded="true" aria-controls="collapseSix">
+                  E3M1
+                </button>
+              </h2>
+              <div id="collapseSix" class="accordion-collapse collapse" data-bs-parent="#accordionExample">
+                <div class="accordion-body">
+                  <div id="e3m1">
+
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="accordion-item">
+              <h2 class="accordion-header">
+                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSeven" aria-expanded="true" aria-controls="collapseSeven">
+                  E3M2
+                </button>
+              </h2>
+              <div id="collapseSeven" class="accordion-collapse collapse" data-bs-parent="#accordionExample">
+                <div class="accordion-body">
+                  <div id="e3m2">
+
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="accordion-item">
+              <h2 class="accordion-header">
+                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseEight" aria-expanded="true" aria-controls="collapseEight">
+                  E4M1
+                </button>
+              </h2>
+              <div id="collapseEight" class="accordion-collapse collapse" data-bs-parent="#accordionExample">
+                <div class="accordion-body">
+                  <div id="e4m1">
+
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="accordion-item">
+              <h2 class="accordion-header">
+                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseNine" aria-expanded="true" aria-controls="collapseNine">
+                  E4M2
+                </button>
+              </h2>
+              <div id="collapseNine" class="accordion-collapse collapse" data-bs-parent="#accordionExample">
+                <div class="accordion-body">
+                  <div id="e4m2">
+
+                  </div>
+                </div>
+              </div>
+            </div>
+
+
+          </div>
+         <!-- </div> -->
+      </div>
+      <div id="map" style="flex: 1;"></div>
+    </div>
+    <div>
+      <button id="saveMarkers" onclick="saveMarkers()">Save markers</button>
+      <img style="height: 32px; width: 32px;" src="icons/starIcon.png" onclick="selectedMarker(starIcon)">
+      <img style="height: 32px; width: 32px;" src="icons/starIcon_rng.png" onclick="selectedMarker(starRng)">
+      <img style="height: 32px; width: 32px;" src="icons/breakable_wall_icon.png" onclick="selectedMarker(breakableIcon)">
+      <img style="height: 32px; width: 32px;" src="icons/red_keycard_icon.png" onclick="selectedMarker(redKeycardIcon)">
+      <img style="height: 32px; width: 32px;" src="icons/green_keycard_icon.png" onclick="selectedMarker(greenKeycardIcon)">
+      <img style="height: 32px; width: 32px;" src="icons/blue_keycard_icon.png" onclick="selectedMarker(blueKeycardIcon)">
+      <img style="height: 32px; width: 32px;" src="icons/easteregg.png" onclick="selectedMarker(easterEgg)">
+      <img style="height: 32px; width: 32px;" src="icons/secret.png" onclick="selectedMarker(secret)">
+    </div>
+  </body>
+
+</html>
+
+    
+    
+    
+    
+    

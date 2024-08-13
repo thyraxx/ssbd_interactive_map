@@ -1,0 +1,16 @@
+.customicon {
+  margin-left: -12px;
+  margin-top: -21px;
+}
+
+.ahover:hover {
+  background-color: darkcyan;
+}
+
+.customahref {
+  height: 30px;
+}
+
+.checked {
+  background-color: lightgreen;
+}
