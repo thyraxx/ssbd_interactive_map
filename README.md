@@ -5,3 +5,5 @@ A interactive map made with Leaflet fully map in javascript so it can also be ru
 No secrets/easter eggs are currently on there.
 
 To create the map tiles for a game map I used gdal2tiles `gdal2tiles.py --processes=10 --xyz -p raster --zoom=7 totalimage.png bogus_complete_map`
+
+The complete image is split up in 4 zips because the complete image was 260~MB
